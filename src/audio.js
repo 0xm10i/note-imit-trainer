@@ -13,11 +13,12 @@ export async function resumeAudioContext() {
 
 /**
  * Harmonically rich tone for ear training (fundamental + harmonics, ADSR).
- * @returns {Promise<void>} resolves when playback envelope finishes
+ * @returns {Promise<void>} resolves when playback envelope finishes on the audio timeline
  */
 export function playNote(midi, durationSec = 1.2) {
   const ac = getAudioContext();
   const now = ac.currentTime;
+  const endTime = now + durationSec + 0.05;
   const freq = 440 * 2 ** ((midi - 69) / 12);
 
   const master = ac.createGain();
@@ -45,10 +46,61 @@ export function playNote(midi, durationSec = 1.2) {
     osc.connect(g);
     g.connect(master);
     osc.start(now);
-    osc.stop(now + durationSec + 0.05);
+    osc.stop(endTime);
   }
 
   return new Promise((resolve) => {
-    setTimeout(resolve, durationSec * 1000 + 50);
+    const delayMs = Math.max(0, (endTime - ac.currentTime) * 1000);
+    setTimeout(resolve, delayMs);
+  });
+}
+
+/**
+ * Short success bell (quiet, inharmonic partials).
+ * @returns {Promise<void>}
+ */
+export function playSuccessBell(durationSec = 0.65) {
+  const ac = getAudioContext();
+  const now = ac.currentTime;
+  const endTime = now + durationSec + 0.05;
+  const baseFreq = 440 * 2 ** ((84 - 69) / 12);
+
+  const master = ac.createGain();
+  master.gain.setValueAtTime(0, now);
+  master.gain.linearRampToValueAtTime(0.22, now + 0.008);
+  master.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
+  master.connect(ac.destination);
+
+  const partials = [
+    { ratio: 1, gain: 1 },
+    { ratio: 2, gain: 0.35 },
+    { ratio: 2.4, gain: 0.2 },
+  ];
+
+  for (const { ratio, gain } of partials) {
+    const osc = ac.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = baseFreq * ratio;
+    const g = ac.createGain();
+    g.gain.value = gain / partials.length;
+    osc.connect(g);
+    g.connect(master);
+    osc.start(now);
+    osc.stop(endTime);
+  }
+
+  const osc2 = ac.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = 440 * 2 ** ((88 - 69) / 12);
+  const g2 = ac.createGain();
+  g2.gain.value = 0.12;
+  osc2.connect(g2);
+  g2.connect(master);
+  osc2.start(now);
+  osc2.stop(endTime);
+
+  return new Promise((resolve) => {
+    const delayMs = Math.max(0, (endTime - ac.currentTime) * 1000);
+    setTimeout(resolve, delayMs);
   });
 }

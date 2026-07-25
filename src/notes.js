@@ -28,7 +28,9 @@ export function nameToMidi(name) {
   return (octave + 1) * 12 + pc;
 }
 
-/** Evenly spaced open-string tunings between lowest and highest MIDI. */
+/** Evenly spaced open-string tunings between lowest and highest MIDI (5 strings). */
+export const TUNING_STRING_COUNT = 5;
+
 export function buildTuning({ strings, lowestMidi, highestMidi }) {
   if (strings < 1) throw new Error('strings must be >= 1');
   if (lowestMidi > highestMidi) throw new Error('lowest must be <= highest');
@@ -64,6 +66,24 @@ export function pickRandomNote(min, max, excludeMidi = null) {
     guard++;
   } while (candidate === excludeMidi && guard < 50);
   return candidate;
+}
+
+export function pickRandomSequence(min, max, length, maxInterval, excludeFirstMidi = null) {
+  if (length < 1) throw new Error('length must be >= 1');
+  if (length === 1) return [pickRandomNote(min, max, excludeFirstMidi)];
+  const seq = [pickRandomNote(min, max, excludeFirstMidi)];
+  for (let i = 1; i < length; i++) {
+    const prev = seq[i - 1];
+    const lo = Math.max(min, prev - maxInterval);
+    const hi = Math.min(max, prev + maxInterval);
+    const pool = allNotesInRange(lo, hi).filter((m) => m !== prev);
+    if (pool.length === 0) {
+      seq.push(pickRandomNote(min, max, prev));
+    } else {
+      seq.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+  }
+  return seq;
 }
 
 export function centsOff(freq, targetMidi) {

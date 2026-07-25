@@ -121,6 +121,7 @@ export class PitchListener {
     this.audioContext = null;
     this.buffer = null;
     this.gated = false;
+    this.listeningEnabled = true;
 
     this._stableMidi = null;
     this._stableCount = 0;
@@ -177,6 +178,32 @@ export class PitchListener {
     }
   }
 
+  /** Mic capture on/off (RMS meter); does not enable pitch grading. */
+  setMicCaptureEnabled(enabled) {
+    if (!this.stream) return;
+    const track = this.stream.getAudioTracks()[0];
+    if (track) track.enabled = enabled;
+  }
+
+  /**
+   * When false: no pitch analysis and mic capture off (reference playback).
+   * When true: mic on and pitch analysis active.
+   */
+  setListeningEnabled(enabled) {
+    this.listeningEnabled = enabled;
+    this.gated = !enabled;
+    this.setMicCaptureEnabled(enabled);
+    if (!enabled) {
+      this._stableMidi = null;
+      this._stableCount = 0;
+      this._lastMidi = null;
+    }
+  }
+
+  isListeningEnabled() {
+    return this.listeningEnabled;
+  }
+
   resetStability() {
     this._stableMidi = null;
     this._stableCount = 0;
@@ -197,7 +224,7 @@ export class PitchListener {
     const level = rms(this.buffer);
     this.rmsLevel = level;
 
-    if (!this.gated && level >= this.noiseGate) {
+    if (this.listeningEnabled && !this.gated && level >= this.noiseGate) {
       const sr = this.audioContext.sampleRate;
       const pitch = detectPitchFromTimeDomain(this.buffer, sr, this.minFreq, this.maxFreq);
       if (pitch) {
@@ -220,10 +247,12 @@ export class PitchListener {
         this._lastMidi = null;
         this._stableCount = 0;
         this.lastDetectedMidi = null;
+        this.lastFreq = null;
       }
     } else if (level < this.noiseGate * 0.6) {
       this._lastMidi = null;
       this._stableCount = 0;
+      this.lastFreq = null;
     }
 
     this._raf = requestAnimationFrame(() => this._loop());

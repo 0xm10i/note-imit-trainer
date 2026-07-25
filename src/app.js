@@ -1,4 +1,5 @@
 import { createSession } from './session.js';
+import { createTuner } from './tuner.js';
 import {
   loadSettings,
   saveSettings,
@@ -7,23 +8,39 @@ import {
   fillForm,
   saveLastSession,
 } from './settings.js';
-import { midiToName } from './notes.js';
+import {
+  midiToName,
+  midiToFreq,
+  buildTuning,
+  playableRange,
+  TUNING_STRING_COUNT,
+} from './notes.js';
 import { resumeAudioContext } from './audio.js';
 import { listAudioInputDevices as listDevices } from './pitch.js';
 
 const viewHome = document.getElementById('view-home');
 const viewPractice = document.getElementById('view-practice');
+const viewTuner = document.getElementById('view-tuner');
 const viewResults = document.getElementById('view-results');
 const settingsForm = document.getElementById('settings-form');
-const btnStart = document.getElementById('btn-start');
 const btnToggleSettings = document.getElementById('btn-toggle-settings');
+const btnTuner = document.getElementById('btn-tuner');
+const btnTunerBack = document.getElementById('btn-tuner-back');
 const btnStop = document.getElementById('btn-stop');
 const btnHome = document.getElementById('btn-home');
 const practiceProgress = document.getElementById('practice-progress');
 const practiceStatus = document.getElementById('practice-status');
+const practiceSequence = document.getElementById('practice-sequence');
+const practiceHint = document.getElementById('practice-hint');
 const practiceReveal = document.getElementById('practice-reveal');
 const practiceLive = document.getElementById('practice-live');
 const micMeter = document.getElementById('mic-meter');
+const tunerNote = document.getElementById('tuner-note');
+const tunerCents = document.getElementById('tuner-cents');
+const tunerFreq = document.getElementById('tuner-freq');
+const tunerNeedle = document.getElementById('tuner-needle');
+const tunerMeter = document.getElementById('tuner-meter');
+const tunerCard = document.querySelector('.tuner-card');
 const resultsSummary = document.getElementById('results-summary');
 const resultsPerNote = document.getElementById('results-per-note');
 const settingsSaved = document.getElementById('settings-saved');
@@ -31,14 +48,91 @@ const inputDeviceSelect = document.getElementById('input-device-select');
 
 let settings = loadSettings();
 let activeSession = null;
+let activeTuner = null;
+let activeNoteCount = 1;
 let meterRaf = null;
 
 function showView(name) {
-  const map = { home: viewHome, practice: viewPractice, results: viewResults };
+  const map = { home: viewHome, practice: viewPractice, tuner: viewTuner, results: viewResults };
   for (const [key, el] of Object.entries(map)) {
     const active = key === name;
     el.classList.toggle('view-active', active);
     el.hidden = !active;
+  }
+}
+
+function tunerFreqBounds() {
+  const ms = settingsToMidi(settings);
+  const tuning = buildTuning({
+    strings: TUNING_STRING_COUNT,
+    lowestMidi: ms.lowestMidi,
+    highestMidi: ms.highestMidi,
+  });
+  const { min, max } = playableRange({ tuning, frets: settings.frets });
+  return {
+    minFreq: Math.max(25, midiToFreq(min) * 0.94),
+    maxFreq: Math.min(800, midiToFreq(max) * 1.06),
+  };
+}
+
+function resetTunerUi() {
+  tunerNote.textContent = '—';
+  tunerCents.textContent = '';
+  tunerFreq.textContent = '';
+  tunerNeedle.style.left = '50%';
+  tunerMeter.style.width = '0%';
+  tunerCard.classList.remove('in-tune');
+}
+
+function updateTunerUi(reading) {
+  const level = Math.min(1, reading.level * 25);
+  tunerMeter.style.width = `${level * 100}%`;
+
+  if (reading.silent) {
+    tunerNote.textContent = '—';
+    tunerCents.textContent = '';
+    tunerFreq.textContent = '';
+    tunerNeedle.style.left = '50%';
+    tunerCard.classList.remove('in-tune');
+    return;
+  }
+
+  tunerNote.textContent = reading.name;
+  const sign = reading.cents >= 0 ? '+' : '';
+  tunerCents.textContent = `${sign}${reading.cents.toFixed(0)} ¢`;
+  tunerFreq.textContent = `${reading.freq.toFixed(1)} Hz`;
+  const clamped = Math.max(-50, Math.min(50, reading.cents));
+  tunerNeedle.style.left = `${50 + clamped}%`;
+  tunerCard.classList.toggle('in-tune', reading.inTune);
+}
+
+function stopTuner() {
+  if (activeTuner) {
+    activeTuner.stop();
+    activeTuner = null;
+  }
+  resetTunerUi();
+}
+
+async function startTuner() {
+  try {
+    showView('tuner');
+    resetTunerUi();
+    const { minFreq, maxFreq } = tunerFreqBounds();
+    activeTuner = createTuner(
+      {
+        noiseGate: settings.noiseGate,
+        inputDeviceId: settings.inputDeviceId,
+        minFreq,
+        maxFreq,
+      },
+      { onReading: updateTunerUi },
+    );
+    await activeTuner.start();
+  } catch (err) {
+    stopTuner();
+    showView('home');
+    alert(err.message || 'Could not start tuner. Check microphone permission.');
   }
 }
 
@@ -87,23 +181,98 @@ btnToggleSettings.addEventListener('click', () => {
   settingsForm.classList.toggle('hidden');
 });
 
+function clearPracticeHint() {
+  practiceHint.innerHTML = '';
+  practiceHint.removeAttribute('aria-label');
+  practiceHint.classList.add('hidden');
+}
+
+const HINT_LABELS = {
+  correct: 'correct',
+  up: 'higher',
+  down: 'lower',
+  same: 'same pitch',
+};
+
+const HINT_SYMBOLS = {
+  correct: '✓',
+  up: '↑',
+  down: '↓',
+  same: '=',
+};
+
+function renderHints(hints) {
+  if (!hints || hints.length === 0) {
+    clearPracticeHint();
+    return;
+  }
+  practiceHint.innerHTML = '';
+  const labels = [];
+  hints.forEach((kind, i) => {
+    const span = document.createElement('span');
+    span.className = 'hint-slot';
+    if (kind === 'correct') span.classList.add('hint-correct');
+    span.textContent = HINT_SYMBOLS[kind] || '?';
+    practiceHint.appendChild(span);
+    labels.push(`note ${i + 1} ${HINT_LABELS[kind] || kind}`);
+  });
+  practiceHint.setAttribute('aria-label', labels.join(', '));
+  practiceHint.classList.remove('hidden');
+}
+
+function updateSequenceProgress(noteCount, targetIndex, state) {
+  if (noteCount <= 1) {
+    practiceSequence.classList.add('hidden');
+    practiceSequence.textContent = '';
+    return;
+  }
+  if (state === 'listening' || state === 'sequence-progress' || state === 'wrong') {
+    const pos = state === 'listening' ? targetIndex + 1 : Math.min(targetIndex + 1, noteCount);
+    practiceSequence.textContent = `Note ${pos} of ${noteCount}`;
+    practiceSequence.classList.remove('hidden');
+  } else if (state === 'playing') {
+    practiceSequence.textContent = `Listen to ${noteCount} notes`;
+    practiceSequence.classList.remove('hidden');
+  } else {
+    practiceSequence.classList.add('hidden');
+  }
+}
+
 function updatePracticeUi(payload) {
   const midiSettings = settingsToMidi(settings);
+  const noteCount = payload.noteCount ?? activeNoteCount;
   practiceProgress.textContent = `${payload.progress ?? 0} / ${midiSettings.notesPerSet}`;
 
-  if (payload.state === 'playing') {
-    practiceStatus.textContent = 'Listen…';
+  updateSequenceProgress(noteCount, payload.targetIndex ?? 0, payload.state);
+
+  if (payload.state === 'pick') {
+    clearPracticeHint();
     practiceReveal.classList.add('hidden');
+  } else if (payload.state === 'playing') {
+    practiceStatus.textContent = noteCount > 1 ? 'Listen…' : 'Listen…';
+    practiceReveal.classList.add('hidden');
+    renderHints(payload.hints);
   } else if (payload.state === 'listening') {
-    practiceStatus.textContent = 'Play the note';
+    practiceStatus.textContent = noteCount > 1 ? 'Play the sequence' : 'Play the note';
     practiceReveal.classList.add('hidden');
+    clearPracticeHint();
+  } else if (payload.state === 'sequence-progress') {
+    practiceStatus.textContent = noteCount > 1 ? 'Play the sequence' : 'Play the note';
+    if (payload.partialReveal) {
+      practiceReveal.textContent = payload.acceptedNames?.join(' · ') ?? payload.partialReveal;
+      practiceReveal.classList.remove('hidden');
+    }
   } else if (payload.state === 'wrong') {
     practiceStatus.textContent = 'Not quite — listen again';
     practiceReveal.classList.add('hidden');
+    clearPracticeHint();
   } else if (payload.state === 'correct') {
     practiceStatus.textContent = 'Correct!';
-    practiceReveal.textContent = payload.revealedName;
+    clearPracticeHint();
+    const names = payload.revealedNames ?? [];
+    practiceReveal.textContent = names.length ? names.join(' · ') : '';
     practiceReveal.classList.remove('hidden');
+    practiceSequence.classList.add('hidden');
   }
 }
 
@@ -132,9 +301,9 @@ function stopMeter() {
 function renderResults(results) {
   resultsSummary.innerHTML = `
     <dt>Total time</dt><dd>${formatDuration(results.totalTimeMs)}</dd>
-    <dt>Notes completed</dt><dd>${results.completed}</dd>
+    <dt>Sequences completed</dt><dd>${results.completed}</dd>
     <dt>First-try accuracy</dt><dd>${results.firstTryPct.toFixed(1)}%</dd>
-    <dt>Avg. time per note</dt><dd>${(results.avgTimeMs / 1000).toFixed(1)}s</dd>
+    <dt>Avg. time per sequence</dt><dd>${(results.avgTimeMs / 1000).toFixed(1)}s</dd>
     <dt>Wrong attempts</dt><dd>${results.wrongAttempts}</dd>
     <dt>Longest streak</dt><dd>${results.longestStreak}</dd>
   `;
@@ -153,12 +322,16 @@ function renderResults(results) {
   }
 }
 
-btnStart.addEventListener('click', async () => {
+async function startPractice(noteCount) {
+  stopTuner();
   try {
     await resumeAudioContext();
-    const midiSettings = settingsToMidi(settings);
+    activeNoteCount = noteCount;
+    const midiSettings = { ...settingsToMidi(settings), noteCount };
     showView('practice');
     practiceReveal.classList.add('hidden');
+    clearPracticeHint();
+    practiceSequence.classList.add('hidden');
     practiceStatus.textContent = 'Starting…';
 
     activeSession = createSession(midiSettings, {
@@ -182,7 +355,14 @@ btnStart.addEventListener('click', async () => {
     showView('home');
     alert(err.message || 'Could not start practice. Check microphone permission.');
   }
-});
+}
+
+for (const btn of document.querySelectorAll('.btn-start')) {
+  btn.addEventListener('click', () => {
+    const count = parseInt(btn.getAttribute('data-note-count'), 10);
+    void startPractice(count);
+  });
+}
 
 btnStop.addEventListener('click', async () => {
   if (activeSession) {
@@ -194,5 +374,14 @@ btnStop.addEventListener('click', async () => {
 });
 
 btnHome.addEventListener('click', () => showView('home'));
+
+btnTuner.addEventListener('click', () => {
+  void startTuner();
+});
+
+btnTunerBack.addEventListener('click', () => {
+  stopTuner();
+  showView('home');
+});
 
 bindSettings();

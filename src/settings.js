@@ -2,10 +2,10 @@ import { nameToMidi } from './notes.js';
 
 export const DEFAULTS = {
   notesPerSet: 100,
-  strings: 5,
   lowestNote: 'B0',
   highestNote: 'G2',
   frets: 22,
+  maxIntervalSemitones: 7,
   noiseGate: 0.015,
   centsTolerance: 40,
   showLiveDetection: false,
@@ -42,10 +42,10 @@ export function readForm(form) {
   const fd = new FormData(form);
   return {
     notesPerSet: parseInt(fd.get('notesPerSet'), 10),
-    strings: parseInt(fd.get('strings'), 10),
     lowestNote: String(fd.get('lowestNote')).trim(),
     highestNote: String(fd.get('highestNote')).trim(),
     frets: parseInt(fd.get('frets'), 10),
+    maxIntervalSemitones: Math.min(24, Math.max(1, parseInt(fd.get('maxIntervalSemitones'), 10))),
     noiseGate: parseFloat(fd.get('noiseGate')),
     centsTolerance: parseInt(fd.get('centsTolerance'), 10),
     showLiveDetection: form.showLiveDetection.checked,
@@ -55,10 +55,10 @@ export function readForm(form) {
 
 export function fillForm(form, settings) {
   form.notesPerSet.value = settings.notesPerSet;
-  form.strings.value = settings.strings;
   form.lowestNote.value = settings.lowestNote;
   form.highestNote.value = settings.highestNote;
   form.frets.value = settings.frets;
+  form.maxIntervalSemitones.value = settings.maxIntervalSemitones;
   form.noiseGate.value = settings.noiseGate;
   form.centsTolerance.value = settings.centsTolerance;
   form.showLiveDetection.checked = settings.showLiveDetection;

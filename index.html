@@ -17,11 +17,16 @@
         <section id="view-home" class="view view-active">
           <div class="card">
             <p class="lead">
-              The app plays a random note in your instrument range. Find it on your bass; wrong answers replay the
-              target until you nail it.
+              The app plays random notes in your instrument range. Find them on your bass; wrong answers replay the
+              target until you nail it. Choose 1, 2, or 3 notes per round.
             </p>
-            <button type="button" id="btn-start" class="btn btn-primary">Start practice</button>
+            <div class="start-row">
+              <button type="button" class="btn btn-primary btn-start" data-note-count="1">1 note</button>
+              <button type="button" class="btn btn-secondary btn-start" data-note-count="2">2 notes</button>
+              <button type="button" class="btn btn-secondary btn-start" data-note-count="3">3 notes</button>
+            </div>
             <button type="button" id="btn-toggle-settings" class="btn btn-secondary">Settings</button>
+            <button type="button" id="btn-tuner" class="btn btn-secondary">Tuner</button>
           </div>
 
           <form id="settings-form" class="card settings-panel hidden" aria-label="Settings">
@@ -30,10 +35,6 @@
               <label>
                 Notes per set
                 <input type="number" name="notesPerSet" min="1" max="500" required />
-              </label>
-              <label>
-                Number of strings
-                <input type="number" name="strings" min="1" max="12" required />
               </label>
               <label>
                 Lowest string (open)
@@ -46,6 +47,10 @@
               <label>
                 Frets
                 <input type="number" name="frets" min="1" max="36" required />
+              </label>
+              <label>
+                Max interval in a sequence (semitones)
+                <input type="number" name="maxIntervalSemitones" min="1" max="24" required />
               </label>
             </div>
 
@@ -80,17 +85,38 @@
 
         <section id="view-practice" class="view" hidden>
           <div class="card practice-card">
-            <p class="headphones-hint">Use headphones so the mic does not hear the reference tone.</p>
             <div class="progress-row">
               <span id="practice-progress">0 / 100</span>
               <button type="button" id="btn-stop" class="btn btn-secondary btn-small">Stop</button>
             </div>
             <p id="practice-status" class="practice-status">Listening…</p>
+            <p id="practice-sequence" class="practice-sequence hidden" aria-live="polite"></p>
+            <p id="practice-hint" class="practice-hint hidden" aria-live="polite"></p>
             <p id="practice-reveal" class="practice-reveal hidden" aria-live="polite"></p>
             <p id="practice-live" class="practice-live hidden" aria-live="polite"></p>
             <div class="meter-wrap">
               <label class="meter-label">Mic level</label>
               <div class="meter"><div id="mic-meter" class="meter-fill"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-tuner" class="view" hidden>
+          <div class="card tuner-card">
+            <div class="progress-row">
+              <span class="tuner-title">Chromatic tuner</span>
+              <button type="button" id="btn-tuner-back" class="btn btn-secondary btn-small">Back</button>
+            </div>
+            <p id="tuner-note" class="tuner-note" aria-live="polite">—</p>
+            <p id="tuner-cents" class="tuner-cents" aria-live="polite"></p>
+            <p id="tuner-freq" class="tuner-freq" aria-live="polite"></p>
+            <div class="tuner-gauge" aria-hidden="true">
+              <div class="tuner-center"></div>
+              <div id="tuner-needle" class="tuner-needle"></div>
+            </div>
+            <div class="meter-wrap">
+              <label class="meter-label">Mic level</label>
+              <div class="meter"><div id="tuner-meter" class="meter-fill"></div></div>
             </div>
           </div>
         </section>
