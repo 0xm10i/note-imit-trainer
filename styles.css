@@ -220,6 +220,7 @@ label.checkbox {
 }
 
 .meter {
+  position: relative;
   height: 10px;
   background: #0c1018;
   border-radius: 999px;
@@ -232,6 +233,46 @@ label.checkbox {
   width: 0%;
   background: linear-gradient(90deg, var(--accent-dim), var(--accent));
   transition: width 80ms linear;
+}
+
+.meter-fill.above-gate {
+  background: linear-gradient(90deg, #3d8f6a, var(--success));
+}
+
+.meter-gate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gate-slider {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+}
+
+.gate-slider input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
+.gate-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
 .stats-grid {

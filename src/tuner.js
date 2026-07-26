@@ -64,5 +64,9 @@ export function createTuner(options, callbacks = {}) {
       smoothedFreq = null;
       listener.stop();
     },
+
+    setNoiseGate(value) {
+      listener.setNoiseGate(value);
+    },
   };
 }

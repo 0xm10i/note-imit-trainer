@@ -96,7 +96,15 @@
             <p id="practice-live" class="practice-live hidden" aria-live="polite"></p>
             <div class="meter-wrap">
               <label class="meter-label">Mic level</label>
-              <div class="meter"><div id="mic-meter" class="meter-fill"></div></div>
+              <div class="meter">
+                <div id="mic-meter" class="meter-fill"></div>
+                <div id="mic-gate-mark" class="meter-gate"></div>
+              </div>
+              <label class="gate-slider">
+                Trigger level
+                <input type="range" id="mic-gate" min="0.001" max="0.04" step="0.0005" />
+              </label>
+              <p class="gate-hint">Notes register when the bar passes the mark.</p>
             </div>
           </div>
         </section>
@@ -116,7 +124,15 @@
             </div>
             <div class="meter-wrap">
               <label class="meter-label">Mic level</label>
-              <div class="meter"><div id="tuner-meter" class="meter-fill"></div></div>
+              <div class="meter">
+                <div id="tuner-meter" class="meter-fill"></div>
+                <div id="tuner-gate-mark" class="meter-gate"></div>
+              </div>
+              <label class="gate-slider">
+                Trigger level
+                <input type="range" id="tuner-gate" min="0.001" max="0.04" step="0.0005" />
+              </label>
+              <p class="gate-hint">Notes register when the bar passes the mark.</p>
             </div>
           </div>
         </section>

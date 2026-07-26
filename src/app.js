@@ -35,22 +35,57 @@ const practiceHint = document.getElementById('practice-hint');
 const practiceReveal = document.getElementById('practice-reveal');
 const practiceLive = document.getElementById('practice-live');
 const micMeter = document.getElementById('mic-meter');
+const micGateMark = document.getElementById('mic-gate-mark');
+const micGateSlider = document.getElementById('mic-gate');
 const tunerNote = document.getElementById('tuner-note');
 const tunerCents = document.getElementById('tuner-cents');
 const tunerFreq = document.getElementById('tuner-freq');
 const tunerNeedle = document.getElementById('tuner-needle');
 const tunerMeter = document.getElementById('tuner-meter');
+const tunerGateMark = document.getElementById('tuner-gate-mark');
+const tunerGateSlider = document.getElementById('tuner-gate');
 const tunerCard = document.querySelector('.tuner-card');
 const resultsSummary = document.getElementById('results-summary');
 const resultsPerNote = document.getElementById('results-per-note');
 const settingsSaved = document.getElementById('settings-saved');
 const inputDeviceSelect = document.getElementById('input-device-select');
 
+const METER_FULL_SCALE_RMS = 0.04;
+
 let settings = loadSettings();
 let activeSession = null;
 let activeTuner = null;
 let activeNoteCount = 1;
 let meterRaf = null;
+
+function meterLevelFraction(rms) {
+  return Math.min(1, rms / METER_FULL_SCALE_RMS);
+}
+
+function gateMarkLeftPercent(gate) {
+  return Math.min(100, (gate / METER_FULL_SCALE_RMS) * 100);
+}
+
+function syncGateSliderUi(slider, mark) {
+  if (!slider || !mark) return;
+  slider.value = String(settings.noiseGate);
+  mark.style.left = `${gateMarkLeftPercent(settings.noiseGate)}%`;
+}
+
+function bindGateSlider(slider, mark, apply) {
+  if (!slider || !mark) return;
+  syncGateSliderUi(slider, mark);
+  slider.addEventListener('input', () => {
+    const value = parseFloat(slider.value);
+    settings.noiseGate = value;
+    mark.style.left = `${gateMarkLeftPercent(value)}%`;
+    apply(value);
+  });
+  slider.addEventListener('change', () => {
+    saveSettings(settings);
+    if (settingsForm.noiseGate) settingsForm.noiseGate.value = settings.noiseGate;
+  });
+}
 
 function showView(name) {
   const map = { home: viewHome, practice: viewPractice, tuner: viewTuner, results: viewResults };
@@ -85,8 +120,9 @@ function resetTunerUi() {
 }
 
 function updateTunerUi(reading) {
-  const level = Math.min(1, reading.level * 25);
+  const level = meterLevelFraction(reading.level);
   tunerMeter.style.width = `${level * 100}%`;
+  tunerMeter.classList.toggle('above-gate', reading.level >= settings.noiseGate);
 
   if (reading.silent) {
     tunerNote.textContent = '—';
@@ -128,6 +164,7 @@ async function startTuner() {
       },
       { onReading: updateTunerUi },
     );
+    syncGateSliderUi(tunerGateSlider, tunerGateMark);
     await activeTuner.start();
   } catch (err) {
     stopTuner();
@@ -170,6 +207,10 @@ settingsForm.addEventListener('submit', (e) => {
   try {
     settings = readForm(settingsForm);
     saveSettings(settings);
+    syncGateSliderUi(micGateSlider, micGateMark);
+    syncGateSliderUi(tunerGateSlider, tunerGateMark);
+    if (activeSession) activeSession.setNoiseGate(settings.noiseGate);
+    if (activeTuner) activeTuner.setNoiseGate(settings.noiseGate);
     settingsSaved.classList.remove('hidden');
     setTimeout(() => settingsSaved.classList.add('hidden'), 2000);
   } catch (err) {
@@ -279,8 +320,9 @@ function updatePracticeUi(payload) {
 function startMeter(listener) {
   const tick = () => {
     if (!activeSession) return;
-    const level = Math.min(1, listener.rmsLevel * 25);
+    const level = meterLevelFraction(listener.rmsLevel);
     micMeter.style.width = `${level * 100}%`;
+    micMeter.classList.toggle('above-gate', listener.rmsLevel >= settings.noiseGate);
     if (settings.showLiveDetection && listener.lastDetectedMidi != null) {
       practiceLive.textContent = `Detected: ${midiToName(listener.lastDetectedMidi)}`;
       practiceLive.classList.remove('hidden');
@@ -296,6 +338,7 @@ function stopMeter() {
   if (meterRaf) cancelAnimationFrame(meterRaf);
   meterRaf = null;
   micMeter.style.width = '0%';
+  micMeter.classList.remove('above-gate');
 }
 
 function renderResults(results) {
@@ -347,6 +390,7 @@ async function startPractice(noteCount) {
       },
     });
 
+    syncGateSliderUi(micGateSlider, micGateMark);
     startMeter(activeSession.getListener());
     await activeSession.start();
   } catch (err) {
@@ -385,3 +429,9 @@ btnTunerBack.addEventListener('click', () => {
 });
 
 bindSettings();
+bindGateSlider(micGateSlider, micGateMark, (value) => {
+  if (activeSession) activeSession.setNoiseGate(value);
+});
+bindGateSlider(tunerGateSlider, tunerGateMark, (value) => {
+  if (activeTuner) activeTuner.setNoiseGate(value);
+});

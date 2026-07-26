@@ -11,8 +11,8 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function waitForSilence(listener, noiseGate, maxMs = 3000) {
-  const threshold = noiseGate * 0.6;
+function waitForSilence(listener, maxMs = 3000) {
+  const threshold = listener.noiseGate * 0.6;
   const start = Date.now();
   return new Promise((resolve) => {
     const tick = () => {
@@ -120,7 +120,7 @@ export function createSession(settings, callbacks) {
     await delay(PLAYBACK_TAIL_MS);
     if (generation !== playTargetGeneration) return;
     listener.setMicCaptureEnabled(true);
-    await waitForSilence(listener, settings.noiseGate);
+    await waitForSilence(listener);
     if (generation !== playTargetGeneration) return;
     listener.resetStability();
     listener.setListeningEnabled(true);
@@ -177,7 +177,7 @@ export function createSession(settings, callbacks) {
     await delay(CORRECT_HOLD_MS);
     if (generation !== playTargetGeneration) return;
     listener.setMicCaptureEnabled(true);
-    await waitForSilence(listener, settings.noiseGate);
+    await waitForSilence(listener);
     if (generation !== playTargetGeneration) return;
     awaitingSilence = false;
     await nextNote();
@@ -275,6 +275,9 @@ export function createSession(settings, callbacks) {
     getStats: () => ({ ...stats }),
     getListener: () => listener,
     getState: () => state,
+    setNoiseGate(value) {
+      listener.setNoiseGate(value);
+    },
   };
 }
 

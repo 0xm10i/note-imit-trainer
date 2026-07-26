@@ -204,6 +204,10 @@ export class PitchListener {
     return this.listeningEnabled;
   }
 
+  setNoiseGate(value) {
+    this.noiseGate = value;
+  }
+
   resetStability() {
     this._stableMidi = null;
     this._stableCount = 0;
