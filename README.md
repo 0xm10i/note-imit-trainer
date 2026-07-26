@@ -1,8 +1,8 @@
 # Note Imit Trainer
 
-Browser-based ear training for bass (or any fretted instrument). The app plays random notes in your configured range; you play them back on your instrument. Choose **1**, **2**, or **3** notes per round from the home screen. Wrong answers replay the sequence until you match. After a full set, you get session stats. Use **Tuner** on the home screen for a chromatic mic tuner (nearest note and cents).
+Browser-based ear training designed for **5-string bass**. The app plays random notes in your configured range; you play them back on your instrument. Choose **1**, **2**, or **3** notes per round from the home screen. Wrong answers replay the sequence until you match. After a full set, you get session stats. Use **Tuner** on the home screen for a chromatic mic tuner (nearest note and cents).
 
-**Live app:** enable GitHub Pages on this repo (see [Deploy](#deploy)).
+Settings let you configure the number of strings, tuning, and frets, so it can be adapted to other fretted instruments — but pitch detection is tuned for bass frequencies and hasn't been validated on other ranges.
 
 ## Requirements
 
@@ -30,14 +30,6 @@ python3 -m http.server 8080
 ```
 
 Open `http://localhost:8080`. Microphone APIs require a secure context (`localhost` is fine).
-
-## Deploy
-
-1. Push this repository to GitHub.
-2. **Settings → Pages → Build and deployment:** Source = **Deploy from a branch**, Branch = **main** / **/ (root)**.
-3. Wait for the site URL (e.g. `https://<user>.github.io/note-imit-trainer/`).
-
-The repo includes `.nojekyll` so GitHub Pages serves the app as static files.
 
 ## How it works
 
