@@ -1,6 +1,6 @@
-# Note Imit Trainer
+# M10i Bass Tools
 
-Browser-based ear training designed for **5-string bass**. The app plays random notes in your configured range; you play them back on your instrument. Choose **1**, **2**, or **3** notes per round from the home screen. Wrong answers replay the sequence until you match. After a full set, you get session stats. Use **Tuner** on the home screen for a chromatic mic tuner (nearest note and cents).
+Browser-based ear training designed for **5-string bass**. The app plays random notes in your configured range; you play them back on your instrument. Choose **1**, **2**, or **3** notes per round from the home screen. Wrong answers replay the sequence until you match. After a full set, you get session stats. Use **Tuner** on the home screen for a chromatic mic tuner (nearest note and cents). Use **Metronome** for a tempo click with adjustable BPM and beats per measure.
 
 Settings let you configure the number of strings, tuning, and frets, so it can be adapted to other fretted instruments — but pitch detection is tuned for bass frequencies and hasn't been validated on other ranges.
 
@@ -18,6 +18,7 @@ Settings let you configure the number of strings, tuning, and frets, so it can b
 | Highest open string | G2 |
 | Frets | 22 |
 | Max interval in a sequence | 7 semitones |
+| Playback volume | 100% |
 
 Playable range is from the lowest open string through the highest string plus frets (default B0–F4).
 
@@ -40,6 +41,7 @@ Open `http://localhost:8080`. Microphone APIs require a secure context (`localho
 - **Playback gating:** the mic is ignored while the reference tone plays (plus a short tail).
 - **Settings** are stored in `localStorage`.
 - **Tuner:** chromatic readout from the microphone (note name, cents, frequency); detection range follows your instrument settings. No reference tone playback.
+- **Metronome:** scheduled clicks (default 90 BPM) through a separate volume control on the Metronome screen; accent on beat 1 of each measure, regular ticks on remaining beats. Independent of Settings playback volume. No microphone.
 
 ## License
 

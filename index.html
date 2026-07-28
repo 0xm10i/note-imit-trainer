@@ -3,30 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Note Imit Trainer</title>
+    <title>M10i Bass Tools</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="app">
       <header class="site-header">
-        <h1>Note Imit Trainer</h1>
-        <p class="tagline">Ear training for bass — play back what you hear.</p>
+        <h1>M10i Bass Tools</h1>
+        <p class="tagline">Ear training, tuner, and metronome for bass.</p>
       </header>
 
       <main>
         <section id="view-home" class="view view-active">
-          <div class="card">
+          <div class="card home-card">
+            <h2>Tools</h2>
+            <p class="lead">Chromatic tuner and metronome.</p>
+            <button type="button" id="btn-tuner" class="btn btn-secondary">Tuner</button>
+            <button type="button" id="btn-metronome" class="btn btn-secondary">Metronome</button>
+          </div>
+
+          <div class="card home-card">
+            <h2>Note imitation practice</h2>
             <p class="lead">
-              The app plays random notes in your instrument range. Find them on your bass; wrong answers replay the
-              target until you nail it. Choose 1, 2, or 3 notes per round.
+              Random notes in your configured range play through your speakers; play them back on your bass in the
+              same order. Note names stay hidden until you match each one.
             </p>
+            <ul class="home-list">
+              <li>Wrong pitch: the sequence replays after a short delay.</li>
+              <li>Multi-note rounds may show up/down hints only while a replay is playing.</li>
+              <li>Use headphones so the mic does not pick up the reference tones.</li>
+            </ul>
+            <p class="home-start-label">Notes per round</p>
             <div class="start-row">
               <button type="button" class="btn btn-primary btn-start" data-note-count="1">1 note</button>
               <button type="button" class="btn btn-secondary btn-start" data-note-count="2">2 notes</button>
               <button type="button" class="btn btn-secondary btn-start" data-note-count="3">3 notes</button>
             </div>
             <button type="button" id="btn-toggle-settings" class="btn btn-secondary">Settings</button>
-            <button type="button" id="btn-tuner" class="btn btn-secondary">Tuner</button>
           </div>
 
           <form id="settings-form" class="card settings-panel hidden" aria-label="Settings">
@@ -51,6 +64,10 @@
               <label>
                 Max interval in a sequence (semitones)
                 <input type="number" name="maxIntervalSemitones" min="1" max="24" required />
+              </label>
+              <label class="gate-slider">
+                Playback volume
+                <input type="range" name="playbackVolume" min="0" max="2" step="0.05" />
               </label>
             </div>
 
@@ -105,6 +122,10 @@
                 <input type="range" id="mic-gate" min="0.001" max="0.04" step="0.0005" />
               </label>
               <p class="gate-hint">Notes register when the bar passes the mark.</p>
+              <label class="gate-slider">
+                Playback volume
+                <input type="range" id="playback-volume" min="0" max="2" step="0.05" />
+              </label>
             </div>
           </div>
         </section>
@@ -133,6 +154,38 @@
                 <input type="range" id="tuner-gate" min="0.001" max="0.04" step="0.0005" />
               </label>
               <p class="gate-hint">Notes register when the bar passes the mark.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-metronome" class="view" hidden>
+          <div class="card metronome-card">
+            <div class="progress-row">
+              <span class="metronome-title">Metronome</span>
+              <button type="button" id="btn-metronome-back" class="btn btn-secondary btn-small">Back</button>
+            </div>
+            <div class="metronome-controls">
+              <button type="button" id="btn-metronome-play" class="btn btn-primary metronome-play">Play</button>
+              <div class="tempo-dial-wrap">
+                <label class="tempo-dial-label">Tempo</label>
+                <div id="tempo-dial" class="tempo-dial" tabindex="0" role="slider" aria-label="Tempo BPM" aria-valuemin="40" aria-valuemax="240" aria-valuenow="90">
+                  <div id="tempo-dial-knob" class="tempo-dial-knob"></div>
+                  <span id="metronome-bpm" class="tempo-dial-value">90</span>
+                  <span class="tempo-dial-unit">BPM</span>
+                </div>
+              </div>
+              <div class="stepper-field">
+                <span class="stepper-label">Beats per measure</span>
+                <div class="stepper">
+                  <button type="button" id="metronome-beats-minus" class="btn btn-secondary btn-small stepper-btn" aria-label="Decrease beats">−</button>
+                  <input type="number" id="metronome-beats" class="stepper-input" min="1" max="16" value="4" readonly aria-label="Beats per measure" />
+                  <button type="button" id="metronome-beats-plus" class="btn btn-secondary btn-small stepper-btn" aria-label="Increase beats">+</button>
+                </div>
+              </div>
+              <label class="gate-slider metronome-volume">
+                Metronome volume
+                <input type="range" id="metronome-volume" min="0" max="2" step="0.05" />
+              </label>
             </div>
           </div>
         </section>

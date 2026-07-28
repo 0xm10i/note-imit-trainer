@@ -10,12 +10,25 @@ export const DEFAULTS = {
   centsTolerance: 40,
   showLiveDetection: false,
   inputDeviceId: '',
+  playbackVolume: 1,
+  metronomeVolume: 1,
 };
 
-const STORAGE_KEY = 'note-imit-trainer-settings';
-const LAST_SESSION_KEY = 'note-imit-trainer-last-session';
+const STORAGE_KEY = 'bass-tools-settings';
+const LAST_SESSION_KEY = 'bass-tools-last-session';
+const LEGACY_STORAGE_KEY = 'note-imit-trainer-settings';
+const LEGACY_LAST_SESSION_KEY = 'note-imit-trainer-last-session';
+
+function migrateStorageKey(newKey, legacyKey) {
+  if (localStorage.getItem(newKey) != null) return;
+  const legacy = localStorage.getItem(legacyKey);
+  if (legacy == null) return;
+  localStorage.setItem(newKey, legacy);
+  localStorage.removeItem(legacyKey);
+}
 
 export function loadSettings() {
+  migrateStorageKey(STORAGE_KEY, LEGACY_STORAGE_KEY);
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULTS };
@@ -50,6 +63,7 @@ export function readForm(form) {
     centsTolerance: parseInt(fd.get('centsTolerance'), 10),
     showLiveDetection: form.showLiveDetection.checked,
     inputDeviceId: String(fd.get('inputDeviceId') || ''),
+    playbackVolume: Math.min(2, Math.max(0, parseFloat(fd.get('playbackVolume')) || 1)),
   };
 }
 
@@ -63,6 +77,7 @@ export function fillForm(form, settings) {
   form.centsTolerance.value = settings.centsTolerance;
   form.showLiveDetection.checked = settings.showLiveDetection;
   if (form.inputDeviceId) form.inputDeviceId.value = settings.inputDeviceId;
+  if (form.playbackVolume) form.playbackVolume.value = settings.playbackVolume;
 }
 
 export function saveLastSession(results) {
@@ -70,6 +85,7 @@ export function saveLastSession(results) {
 }
 
 export function loadLastSession() {
+  migrateStorageKey(LAST_SESSION_KEY, LEGACY_LAST_SESSION_KEY);
   try {
     const raw = localStorage.getItem(LAST_SESSION_KEY);
     return raw ? JSON.parse(raw) : null;

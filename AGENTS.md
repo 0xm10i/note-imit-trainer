@@ -1,4 +1,4 @@
-# AGENTS.md — Note Imit Trainer
+# AGENTS.md — M10i Bass Tools
 
 Guidance for AI agents working in this repository.
 
@@ -25,14 +25,15 @@ Keep changes **small and focused**. Match existing style (vanilla JS, minimal co
 
 | Path | Role |
 |------|------|
-| [`index.html`](index.html) | Four views (home/settings, practice, tuner, results); toggled via classes / `hidden` |
+| [`index.html`](index.html) | Views (home/settings, practice, tuner, metronome, results); toggled via classes / `hidden` |
 | [`styles.css`](styles.css) | Dark UI, practice-focused typography |
 | [`src/app.js`](src/app.js) | DOM wiring, view switching, settings form, session callbacks |
 | [`src/session.js`](src/session.js) | Practice state machine, stats, timing constants, playback/listen sequencing |
-| [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell` |
+| [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell`, `scheduleMetronomeClick`; `setPlaybackVolume` / `setMetronomeVolume` (separate gain bus for clicks) |
 | [`src/pitch.js`](src/pitch.js) | MPM pitch detection, `PitchListener` (mic + stability gating) |
 | [`src/notes.js`](src/notes.js) | MIDI ↔ name ↔ frequency, tuning range, `pickRandomNote`, `pickRandomSequence` |
 | [`src/tuner.js`](src/tuner.js) | Chromatic tuner: `createTuner`, live cents readout via `PitchListener` |
+| [`src/metronome.js`](src/metronome.js) | Metronome: `createMetronome`, lookahead scheduler, accent on beat 1 of each measure |
 | [`src/settings.js`](src/settings.js) | Defaults, `localStorage`, form read/write |
 | [`README.md`](README.md) | User-facing docs |
 
@@ -44,6 +45,7 @@ app.js  →  createSession(settings, callbacks)
               → playNote / playSuccessBell (audio.js)
               → notes.js (range, targets)
          →  createTuner() (tuner.js) — separate mic stream, not used during practice
+         →  createMetronome() (metronome.js) — playback only, stops when practice/tuner starts
 settings.js  →  persisted user config
 ```
 
@@ -68,6 +70,7 @@ Home screen passes `noteCount` (1–3) into the session; it is not persisted in 
 - 100 sequences per set, 5 strings, open strings B0–G2, 22 frets, max interval 7 semitones between consecutive notes in a sequence → playable MIDI ~23–65 (B0–F4).
 - Intermediate strings: evenly spaced between lowest and highest open string (rounded MIDI).
 - Advanced: noise gate, cents tolerance, input device, optional live detection (off by default).
+- Playback volume: 0–200% (default 100%) on reference tones and success bell; adjustable in Settings and during practice.
 
 ## Testing and verification
 
