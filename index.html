@@ -4,22 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>M10i Bass Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Michroma&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="app">
       <header class="site-header">
         <h1>M10i Bass Tools</h1>
-        <p class="tagline">Ear training, tuner, and metronome for bass.</p>
+        <p class="tagline">Ear training, tuner, metronome, and drum machine for bass.</p>
       </header>
 
       <main>
         <section id="view-home" class="view view-active">
           <div class="card home-card">
             <h2>Tools</h2>
-            <p class="lead">Chromatic tuner and metronome.</p>
+            <p class="lead">Chromatic tuner, metronome, and drum machine.</p>
             <button type="button" id="btn-tuner" class="btn btn-secondary">Tuner</button>
             <button type="button" id="btn-metronome" class="btn btn-secondary">Metronome</button>
+            <button type="button" id="btn-drum" class="btn btn-secondary">Drum machine</button>
           </div>
 
           <div class="card home-card">
@@ -186,6 +193,45 @@
                 Metronome volume
                 <input type="range" id="metronome-volume" min="0" max="2" step="0.05" />
               </label>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-drum" class="view" hidden>
+          <div class="card drum-card">
+            <div class="progress-row">
+              <span class="drum-title">Drum machine</span>
+              <button type="button" id="btn-drum-back" class="btn btn-secondary btn-small">Back</button>
+            </div>
+            <div class="drum-controls">
+              <div class="drum-transport">
+                <button type="button" id="btn-drum-play" class="btn btn-primary drum-play">Play</button>
+                <button type="button" id="btn-drum-reset" class="btn btn-secondary">Reset</button>
+              </div>
+              <label class="gate-slider drum-tempo">
+                Tempo
+                <input type="range" id="drum-tempo" min="40" max="240" step="1" value="90" />
+                <span id="drum-bpm" class="drum-bpm-readout">90 BPM</span>
+              </label>
+              <div class="drum-steppers">
+                <div class="stepper-field">
+                  <span class="stepper-label">Beats</span>
+                  <div class="stepper">
+                    <button type="button" id="drum-beats-minus" class="btn btn-secondary btn-small stepper-btn" aria-label="Decrease beats">−</button>
+                    <input type="number" id="drum-beats" class="stepper-input" min="1" max="16" value="4" readonly aria-label="Beats" />
+                    <button type="button" id="drum-beats-plus" class="btn btn-secondary btn-small stepper-btn" aria-label="Increase beats">+</button>
+                  </div>
+                </div>
+                <div class="stepper-field">
+                  <span class="stepper-label">Sub-beats per beat</span>
+                  <div class="stepper">
+                    <button type="button" id="drum-subbeats-minus" class="btn btn-secondary btn-small stepper-btn" aria-label="Decrease sub-beats">−</button>
+                    <input type="number" id="drum-subbeats" class="stepper-input" min="1" max="16" value="4" readonly aria-label="Sub-beats per beat" />
+                    <button type="button" id="drum-subbeats-plus" class="btn btn-secondary btn-small stepper-btn" aria-label="Increase sub-beats">+</button>
+                  </div>
+                </div>
+              </div>
+              <div id="drum-grid" class="drum-grid" aria-label="Step sequencer pattern"></div>
             </div>
           </div>
         </section>

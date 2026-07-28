@@ -10,11 +10,18 @@
   --success: #5dd39e;
   --danger: #ff7b7b;
   --radius: 12px;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: "Michroma", system-ui, sans-serif;
 }
 
 * {
   box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 body {
@@ -545,4 +552,120 @@ label.checkbox {
 .metronome-volume {
   width: 100%;
   max-width: 18rem;
+}
+
+.drum-title {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.drum-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.drum-transport {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.drum-play {
+  min-width: 8rem;
+  margin: 0;
+}
+
+.drum-tempo {
+  width: 100%;
+  max-width: 20rem;
+  margin: 0 auto;
+}
+
+.drum-bpm-readout {
+  display: block;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+.drum-steppers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.drum-grid {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.drum-grid-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.drum-grid-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: min-content;
+}
+
+.drum-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.drum-row-label {
+  flex: 0 0 2rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 0.25rem;
+  line-height: 1.2;
+}
+
+.drum-steps {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.drum-step {
+  flex: 0 0 1.35rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.drum-step:hover {
+  border-color: var(--accent-dim);
+}
+
+.drum-step-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.drum-step-current {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+.drum-step-on.drum-step-current {
+  box-shadow: 0 0 0 2px var(--text), inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.drum-step.drum-beat-mark {
+  border-color: color-mix(in srgb, var(--border) 70%, var(--accent) 30%);
 }

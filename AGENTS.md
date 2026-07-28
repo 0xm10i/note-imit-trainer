@@ -25,15 +25,16 @@ Keep changes **small and focused**. Match existing style (vanilla JS, minimal co
 
 | Path | Role |
 |------|------|
-| [`index.html`](index.html) | Views (home/settings, practice, tuner, metronome, results); toggled via classes / `hidden` |
+| [`index.html`](index.html) | Views (home/settings, practice, tuner, metronome, drum machine, results); toggled via classes / `hidden` |
 | [`styles.css`](styles.css) | Dark UI, practice-focused typography |
 | [`src/app.js`](src/app.js) | DOM wiring, view switching, settings form, session callbacks |
 | [`src/session.js`](src/session.js) | Practice state machine, stats, timing constants, playback/listen sequencing |
-| [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell`, `scheduleMetronomeClick`; `setPlaybackVolume` / `setMetronomeVolume` (separate gain bus for clicks) |
+| [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell`, `scheduleMetronomeClick`, `scheduleDrumHit`; `setPlaybackVolume` / `setMetronomeVolume` / `setDrumVolume` (separate gain buses) |
 | [`src/pitch.js`](src/pitch.js) | MPM pitch detection, `PitchListener` (mic + stability gating) |
 | [`src/notes.js`](src/notes.js) | MIDI ↔ name ↔ frequency, tuning range, `pickRandomNote`, `pickRandomSequence` |
 | [`src/tuner.js`](src/tuner.js) | Chromatic tuner: `createTuner`, live cents readout via `PitchListener` |
 | [`src/metronome.js`](src/metronome.js) | Metronome: `createMetronome`, lookahead scheduler, accent on beat 1 of each measure |
+| [`src/drumMachine.js`](src/drumMachine.js) | Drum machine: `createDrumMachine`, step sequencer, synthesized hits via `scheduleDrumHit` |
 | [`src/settings.js`](src/settings.js) | Defaults, `localStorage`, form read/write |
 | [`README.md`](README.md) | User-facing docs |
 
@@ -45,7 +46,8 @@ app.js  →  createSession(settings, callbacks)
               → playNote / playSuccessBell (audio.js)
               → notes.js (range, targets)
          →  createTuner() (tuner.js) — separate mic stream, not used during practice
-         →  createMetronome() (metronome.js) — playback only, stops when practice/tuner starts
+         →  createMetronome() (metronome.js) — playback only, stops when practice/tuner/drum starts
+         →  createDrumMachine() (drumMachine.js) — playback only, stops when practice/tuner/metronome starts
 settings.js  →  persisted user config
 ```
 

@@ -1,6 +1,6 @@
 # M10i Bass Tools
 
-Browser-based ear training designed for **5-string bass**. The app plays random notes in your configured range; you play them back on your instrument. Choose **1**, **2**, or **3** notes per round from the home screen. Wrong answers replay the sequence until you match. After a full set, you get session stats. Use **Tuner** on the home screen for a chromatic mic tuner (nearest note and cents). Use **Metronome** for a tempo click with adjustable BPM and beats per measure.
+Browser-based ear training designed for **5-string bass**. The app plays random notes in your configured range; you play them back on your instrument. Choose **1**, **2**, or **3** notes per round from the home screen. Wrong answers replay the sequence until you match. After a full set, you get session stats. Use **Tuner** on the home screen for a chromatic mic tuner (nearest note and cents). Use **Metronome** for a tempo click with adjustable BPM and beats per measure. Use **Drum machine** for a looping step sequencer (kick, snare, closed hi-hat) with adjustable tempo, beats, and sub-beats.
 
 Settings let you configure the number of strings, tuning, and frets, so it can be adapted to other fretted instruments — but pitch detection is tuned for bass frequencies and hasn't been validated on other ranges.
 
@@ -42,6 +42,7 @@ Open `http://localhost:8080`. Microphone APIs require a secure context (`localho
 - **Settings** are stored in `localStorage`.
 - **Tuner:** chromatic readout from the microphone (note name, cents, frequency); detection range follows your instrument settings. No reference tone playback.
 - **Metronome:** scheduled clicks (default 90 BPM) through a separate volume control on the Metronome screen; accent on beat 1 of each measure, regular ticks on remaining beats. Independent of Settings playback volume. No microphone.
+- **Drum machine:** synthesized kick, snare, and closed hi-hat on a step grid (`beats × sub-beats` columns). Tempo slider (default 90 BPM), play/pause, reset playhead, always looping. No microphone.
 
 ## License
 

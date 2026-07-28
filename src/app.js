@@ -1,6 +1,7 @@
 import { createSession } from './session.js';
 import { createTuner } from './tuner.js';
 import { createMetronome } from './metronome.js';
+import { createDrumMachine, DRUM_VOICES, DRUM_VOICE_LABELS } from './drumMachine.js';
 import {
   loadSettings,
   saveSettings,
@@ -16,21 +17,26 @@ import {
   playableRange,
   TUNING_STRING_COUNT,
 } from './notes.js';
-import { resumeAudioContext, setPlaybackVolume, setMetronomeVolume } from './audio.js';
+import { resumeAudioContext, setPlaybackVolume, setMetronomeVolume, setDrumVolume } from './audio.js';
 import { listAudioInputDevices as listDevices } from './pitch.js';
 
 const viewHome = document.getElementById('view-home');
 const viewPractice = document.getElementById('view-practice');
 const viewTuner = document.getElementById('view-tuner');
 const viewMetronome = document.getElementById('view-metronome');
+const viewDrum = document.getElementById('view-drum');
 const viewResults = document.getElementById('view-results');
 const settingsForm = document.getElementById('settings-form');
 const btnToggleSettings = document.getElementById('btn-toggle-settings');
 const btnTuner = document.getElementById('btn-tuner');
 const btnMetronome = document.getElementById('btn-metronome');
+const btnDrum = document.getElementById('btn-drum');
 const btnTunerBack = document.getElementById('btn-tuner-back');
 const btnMetronomeBack = document.getElementById('btn-metronome-back');
+const btnDrumBack = document.getElementById('btn-drum-back');
 const btnMetronomePlay = document.getElementById('btn-metronome-play');
+const btnDrumPlay = document.getElementById('btn-drum-play');
+const btnDrumReset = document.getElementById('btn-drum-reset');
 const btnStop = document.getElementById('btn-stop');
 const btnHome = document.getElementById('btn-home');
 const practiceProgress = document.getElementById('practice-progress');
@@ -59,6 +65,15 @@ const metronomeBeats = document.getElementById('metronome-beats');
 const metronomeBeatsMinus = document.getElementById('metronome-beats-minus');
 const metronomeBeatsPlus = document.getElementById('metronome-beats-plus');
 const metronomeVolumeSlider = document.getElementById('metronome-volume');
+const drumTempoSlider = document.getElementById('drum-tempo');
+const drumBpmReadout = document.getElementById('drum-bpm');
+const drumBeats = document.getElementById('drum-beats');
+const drumBeatsMinus = document.getElementById('drum-beats-minus');
+const drumBeatsPlus = document.getElementById('drum-beats-plus');
+const drumSubbeats = document.getElementById('drum-subbeats');
+const drumSubbeatsMinus = document.getElementById('drum-subbeats-minus');
+const drumSubbeatsPlus = document.getElementById('drum-subbeats-plus');
+const drumGrid = document.getElementById('drum-grid');
 const resultsSummary = document.getElementById('results-summary');
 const resultsPerNote = document.getElementById('results-per-note');
 const settingsSaved = document.getElementById('settings-saved');
@@ -69,15 +84,23 @@ const BPM_MIN = 40;
 const BPM_MAX = 240;
 const BEATS_MIN = 1;
 const BEATS_MAX = 16;
+const SUBBEATS_MIN = 1;
+const SUBBEATS_MAX = 16;
 
 let settings = loadSettings();
 setPlaybackVolume(settings.playbackVolume);
 setMetronomeVolume(settings.metronomeVolume ?? 1);
+setDrumVolume(1);
 let activeSession = null;
 let activeTuner = null;
 let activeMetronome = null;
+let activeDrumMachine = null;
 let metronomeBpmValue = 90;
 let metronomeBeatsValue = 4;
+let drumBpmValue = 90;
+let drumBeatsValue = 4;
+let drumSubbeatsValue = 4;
+let drumPlayheadStep = 0;
 let beatPulseTimeout = null;
 let activeNoteCount = 1;
 let meterRaf = null;
@@ -154,6 +177,7 @@ function showView(name) {
     practice: viewPractice,
     tuner: viewTuner,
     metronome: viewMetronome,
+    drum: viewDrum,
     results: viewResults,
   };
   for (const [key, el] of Object.entries(map)) {
@@ -291,6 +315,7 @@ function ensureMetronome() {
 
 function openMetronomeView() {
   stopTuner();
+  stopDrumMachine();
   showView('metronome');
   syncMetronomeDialUi(metronomeBpmValue);
   syncMetronomeBeatsUi(metronomeBeatsValue);
@@ -366,8 +391,220 @@ function bindMetronomeUi() {
   });
 }
 
+function syncDrumTempoUi(bpm) {
+  drumBpmValue = bpm;
+  if (drumTempoSlider) drumTempoSlider.value = String(bpm);
+  if (drumBpmReadout) drumBpmReadout.textContent = `${bpm} BPM`;
+}
+
+function syncDrumBeatsUi(beats) {
+  drumBeatsValue = beats;
+  if (drumBeats) drumBeats.value = String(beats);
+  if (drumBeatsMinus) drumBeatsMinus.disabled = beats <= BEATS_MIN;
+  if (drumBeatsPlus) drumBeatsPlus.disabled = beats >= BEATS_MAX;
+}
+
+function syncDrumSubbeatsUi(subbeats) {
+  drumSubbeatsValue = subbeats;
+  if (drumSubbeats) drumSubbeats.value = String(subbeats);
+  if (drumSubbeatsMinus) drumSubbeatsMinus.disabled = subbeats <= SUBBEATS_MIN;
+  if (drumSubbeatsPlus) drumSubbeatsPlus.disabled = subbeats >= SUBBEATS_MAX;
+}
+
+function syncDrumPlayUi() {
+  const playing = activeDrumMachine && activeDrumMachine.isRunning() && !activeDrumMachine.isPaused();
+  if (btnDrumPlay) btnDrumPlay.textContent = playing ? 'Pause' : 'Play';
+  if (btnDrumPlay) btnDrumPlay.setAttribute('aria-pressed', playing ? 'true' : 'false');
+}
+
+function updateDrumPlayhead(stepIndex) {
+  drumPlayheadStep = stepIndex;
+  if (!drumGrid) return;
+  for (const btn of drumGrid.querySelectorAll('.drum-step-current')) {
+    btn.classList.remove('drum-step-current');
+  }
+  for (const btn of drumGrid.querySelectorAll(`.drum-step[data-step="${stepIndex}"]`)) {
+    btn.classList.add('drum-step-current');
+  }
+}
+
+function renderDrumGrid() {
+  if (!drumGrid || !activeDrumMachine) return;
+  const pattern = activeDrumMachine.getPattern();
+  const stepCount = activeDrumMachine.getStepCount();
+  const subBeats = activeDrumMachine.getSubBeats();
+
+  drumGrid.innerHTML = '';
+  const scroll = document.createElement('div');
+  scroll.className = 'drum-grid-scroll';
+  const inner = document.createElement('div');
+  inner.className = 'drum-grid-inner';
+
+  for (const voice of [...DRUM_VOICES].reverse()) {
+    const row = document.createElement('div');
+    row.className = 'drum-row';
+
+    const label = document.createElement('span');
+    label.className = 'drum-row-label';
+    label.textContent = DRUM_VOICE_LABELS[voice];
+    row.appendChild(label);
+
+    const steps = document.createElement('div');
+    steps.className = 'drum-steps';
+
+    for (let step = 0; step < stepCount; step += 1) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'drum-step';
+      btn.dataset.voice = voice;
+      btn.dataset.step = String(step);
+      btn.setAttribute('aria-label', `${DRUM_VOICE_LABELS[voice]} step ${step + 1}`);
+      btn.setAttribute('aria-pressed', pattern[voice][step] ? 'true' : 'false');
+      if (pattern[voice][step]) btn.classList.add('drum-step-on');
+      if (step % subBeats === 0) btn.classList.add('drum-beat-mark');
+      if (step === drumPlayheadStep) btn.classList.add('drum-step-current');
+      btn.addEventListener('click', () => {
+        if (!activeDrumMachine) return;
+        activeDrumMachine.toggleStep(voice, step);
+        const on = activeDrumMachine.getPattern()[voice][step];
+        btn.classList.toggle('drum-step-on', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      steps.appendChild(btn);
+    }
+
+    row.appendChild(steps);
+    inner.appendChild(row);
+  }
+
+  scroll.appendChild(inner);
+  drumGrid.appendChild(scroll);
+}
+
+function stopDrumMachine() {
+  if (activeDrumMachine) {
+    activeDrumMachine.stop();
+    activeDrumMachine = null;
+  }
+  drumPlayheadStep = 0;
+  syncDrumPlayUi();
+}
+
+function ensureDrumMachine() {
+  if (!activeDrumMachine) {
+    activeDrumMachine = createDrumMachine(
+      { bpm: drumBpmValue, beats: drumBeatsValue, subBeats: drumSubbeatsValue },
+      {
+        onStep: ({ stepIndex }) => updateDrumPlayhead(stepIndex),
+      },
+    );
+  }
+  return activeDrumMachine;
+}
+
+function openDrumView() {
+  stopTuner();
+  stopMetronome();
+  showView('drum');
+  syncDrumTempoUi(drumBpmValue);
+  syncDrumBeatsUi(drumBeatsValue);
+  syncDrumSubbeatsUi(drumSubbeatsValue);
+  syncDrumPlayUi();
+  ensureDrumMachine();
+  activeDrumMachine.setBpm(drumBpmValue);
+  activeDrumMachine.setBeats(drumBeatsValue);
+  activeDrumMachine.setSubBeats(drumSubbeatsValue);
+  drumPlayheadStep = activeDrumMachine.getStepIndex();
+  renderDrumGrid();
+  updateDrumPlayhead(drumPlayheadStep);
+}
+
+async function toggleDrumPlayPause() {
+  await resumeAudioContext();
+  const drum = ensureDrumMachine();
+  if (!drum.isRunning()) {
+    drum.setBpm(drumBpmValue);
+    await drum.start();
+  } else if (drum.isPaused()) {
+    await drum.resume();
+  } else {
+    drum.pause();
+  }
+  syncDrumPlayUi();
+}
+
+function bindDrumUi() {
+  syncDrumTempoUi(drumBpmValue);
+  syncDrumBeatsUi(drumBeatsValue);
+  syncDrumSubbeatsUi(drumSubbeatsValue);
+  syncDrumPlayUi();
+
+  if (drumTempoSlider) {
+    drumTempoSlider.addEventListener('input', () => {
+      const bpm = parseInt(drumTempoSlider.value, 10);
+      syncDrumTempoUi(bpm);
+      if (activeDrumMachine) activeDrumMachine.setBpm(bpm);
+    });
+  }
+
+  drumBeatsMinus.addEventListener('click', () => {
+    const beats = Math.max(BEATS_MIN, drumBeatsValue - 1);
+    syncDrumBeatsUi(beats);
+    if (activeDrumMachine) {
+      activeDrumMachine.setBeats(beats);
+      syncDrumPlayUi();
+      drumPlayheadStep = 0;
+      renderDrumGrid();
+    }
+  });
+
+  drumBeatsPlus.addEventListener('click', () => {
+    const beats = Math.min(BEATS_MAX, drumBeatsValue + 1);
+    syncDrumBeatsUi(beats);
+    if (activeDrumMachine) {
+      activeDrumMachine.setBeats(beats);
+      syncDrumPlayUi();
+      drumPlayheadStep = 0;
+      renderDrumGrid();
+    }
+  });
+
+  drumSubbeatsMinus.addEventListener('click', () => {
+    const sub = Math.max(SUBBEATS_MIN, drumSubbeatsValue - 1);
+    syncDrumSubbeatsUi(sub);
+    if (activeDrumMachine) {
+      activeDrumMachine.setSubBeats(sub);
+      syncDrumPlayUi();
+      drumPlayheadStep = 0;
+      renderDrumGrid();
+    }
+  });
+
+  drumSubbeatsPlus.addEventListener('click', () => {
+    const sub = Math.min(SUBBEATS_MAX, drumSubbeatsValue + 1);
+    syncDrumSubbeatsUi(sub);
+    if (activeDrumMachine) {
+      activeDrumMachine.setSubBeats(sub);
+      syncDrumPlayUi();
+      drumPlayheadStep = 0;
+      renderDrumGrid();
+    }
+  });
+
+  btnDrumPlay.addEventListener('click', () => {
+    void toggleDrumPlayPause();
+  });
+
+  btnDrumReset.addEventListener('click', () => {
+    if (!activeDrumMachine) return;
+    activeDrumMachine.resetPosition();
+    updateDrumPlayhead(0);
+  });
+}
+
 async function startTuner() {
   stopMetronome();
+  stopDrumMachine();
   try {
     showView('tuner');
     resetTunerUi();
@@ -587,6 +824,7 @@ function renderResults(results) {
 async function startPractice(noteCount) {
   stopTuner();
   stopMetronome();
+  stopDrumMachine();
   try {
     await resumeAudioContext();
     activeNoteCount = noteCount;
@@ -648,6 +886,10 @@ btnMetronome.addEventListener('click', () => {
   openMetronomeView();
 });
 
+btnDrum.addEventListener('click', () => {
+  openDrumView();
+});
+
 btnTunerBack.addEventListener('click', () => {
   stopTuner();
   showView('home');
@@ -658,8 +900,14 @@ btnMetronomeBack.addEventListener('click', () => {
   showView('home');
 });
 
+btnDrumBack.addEventListener('click', () => {
+  stopDrumMachine();
+  showView('home');
+});
+
 bindSettings();
 bindMetronomeUi();
+bindDrumUi();
 bindGateSlider(micGateSlider, micGateMark, (value) => {
   if (activeSession) activeSession.setNoiseGate(value);
 });

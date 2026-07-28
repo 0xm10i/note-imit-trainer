@@ -1,6 +1,7 @@
 let ctx = null;
 let outputGain = null;
 let metronomeGain = null;
+let drumGain = null;
 
 const PLAYBACK_VOLUME_MIN = 0;
 const PLAYBACK_VOLUME_MAX = 2;
@@ -42,6 +43,99 @@ export function setMetronomeVolume(linear) {
   const g = getMetronomeGain();
   g.gain.setValueAtTime(v, g.context.currentTime);
   return v;
+}
+
+function getDrumGain() {
+  const ac = getAudioContext();
+  if (!drumGain) {
+    drumGain = ac.createGain();
+    drumGain.gain.value = 1;
+    drumGain.connect(getOutputGain());
+  }
+  return drumGain;
+}
+
+export function setDrumVolume(linear) {
+  const v = Math.min(PLAYBACK_VOLUME_MAX, Math.max(PLAYBACK_VOLUME_MIN, linear));
+  const g = getDrumGain();
+  g.gain.setValueAtTime(v, g.context.currentTime);
+  return v;
+}
+
+function scheduleNoiseBurst(ac, when, duration, peak, filterType, filterFreq, filterQ) {
+  const bufferSize = Math.ceil(ac.sampleRate * duration) + 1;
+  const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i += 1) {
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  const source = ac.createBufferSource();
+  source.buffer = buffer;
+
+  const filter = ac.createBiquadFilter();
+  filter.type = filterType;
+  filter.frequency.value = filterFreq;
+  filter.Q.value = filterQ;
+
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(0, when);
+  gain.gain.linearRampToValueAtTime(peak, when + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.001, when + duration);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(getDrumGain());
+  source.start(when);
+  source.stop(when + duration + 0.02);
+}
+
+/**
+ * @param {'kick'|'snare'|'hhClosed'} voice
+ * @param {number} when AudioContext time
+ */
+export function scheduleDrumHit(voice, when) {
+  const ac = getAudioContext();
+
+  if (voice === 'kick') {
+    const duration = 0.35;
+    const end = when + duration;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(0.85, when + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, end);
+    gain.connect(getDrumGain());
+
+    const osc = ac.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, when);
+    osc.frequency.exponentialRampToValueAtTime(50, when + 0.08);
+    osc.connect(gain);
+    osc.start(when);
+    osc.stop(end + 0.02);
+    return;
+  }
+
+  if (voice === 'snare') {
+    scheduleNoiseBurst(ac, when, 0.18, 0.45, 'bandpass', 1800, 0.8);
+    const bodyEnd = when + 0.12;
+    const body = ac.createGain();
+    body.gain.setValueAtTime(0, when);
+    body.gain.linearRampToValueAtTime(0.25, when + 0.003);
+    body.gain.exponentialRampToValueAtTime(0.001, bodyEnd);
+    body.connect(getDrumGain());
+    const osc = ac.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 180;
+    osc.connect(body);
+    osc.start(when);
+    osc.stop(bodyEnd + 0.01);
+    return;
+  }
+
+  if (voice === 'hhClosed') {
+    scheduleNoiseBurst(ac, when, 0.05, 0.22, 'highpass', 7000, 0.7);
+  }
 }
 
 export async function resumeAudioContext() {
