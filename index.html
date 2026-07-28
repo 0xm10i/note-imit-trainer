@@ -213,6 +213,24 @@
                 <input type="range" id="drum-tempo" min="40" max="240" step="1" value="90" />
                 <span id="drum-bpm" class="drum-bpm-readout">90 BPM</span>
               </label>
+              <div class="drum-volumes" role="group" aria-label="Drum volumes">
+                <label class="gate-slider drum-vol-slider">
+                  <span class="drum-vol-mark">M</span>
+                  <input type="range" id="drum-vol-master" min="0" max="2" step="0.05" value="1" aria-label="Master volume" />
+                </label>
+                <label class="gate-slider drum-vol-slider">
+                  <span class="drum-vol-mark">K</span>
+                  <input type="range" id="drum-vol-kick" min="0" max="2" step="0.05" value="1" aria-label="Kick volume" />
+                </label>
+                <label class="gate-slider drum-vol-slider">
+                  <span class="drum-vol-mark">S</span>
+                  <input type="range" id="drum-vol-snare" min="0" max="2" step="0.05" value="1" aria-label="Snare volume" />
+                </label>
+                <label class="gate-slider drum-vol-slider">
+                  <span class="drum-vol-mark">H</span>
+                  <input type="range" id="drum-vol-hihat" min="0" max="2" step="0.05" value="1" aria-label="Hi-hat volume" />
+                </label>
+              </div>
               <div class="drum-steppers">
                 <div class="stepper-field">
                   <span class="stepper-label">Beats</span>

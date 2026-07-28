@@ -29,7 +29,7 @@ Keep changes **small and focused**. Match existing style (vanilla JS, minimal co
 | [`styles.css`](styles.css) | Dark UI, practice-focused typography |
 | [`src/app.js`](src/app.js) | DOM wiring, view switching, settings form, session callbacks |
 | [`src/session.js`](src/session.js) | Practice state machine, stats, timing constants, playback/listen sequencing |
-| [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell`, `scheduleMetronomeClick`, `scheduleDrumHit`; `setPlaybackVolume` / `setMetronomeVolume` / `setDrumVolume` (separate gain buses) |
+| [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell`, `scheduleMetronomeClick`, `scheduleDrumHit`; `setPlaybackVolume` / `setMetronomeVolume` / `setDrumVolume` / `setDrumVoiceVolume` (drum master + per-voice buses) |
 | [`src/pitch.js`](src/pitch.js) | MPM pitch detection, `PitchListener` (mic + stability gating) |
 | [`src/notes.js`](src/notes.js) | MIDI ↔ name ↔ frequency, tuning range, `pickRandomNote`, `pickRandomSequence` |
 | [`src/tuner.js`](src/tuner.js) | Chromatic tuner: `createTuner`, live cents readout via `PitchListener` |

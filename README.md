@@ -42,7 +42,7 @@ Open `http://localhost:8080`. Microphone APIs require a secure context (`localho
 - **Settings** are stored in `localStorage`.
 - **Tuner:** chromatic readout from the microphone (note name, cents, frequency); detection range follows your instrument settings. No reference tone playback.
 - **Metronome:** scheduled clicks (default 90 BPM) through a separate volume control on the Metronome screen; accent on beat 1 of each measure, regular ticks on remaining beats. Independent of Settings playback volume. No microphone.
-- **Drum machine:** synthesized kick, snare, and closed hi-hat on a step grid (`beats × sub-beats` columns). Tempo slider (default 90 BPM), play/pause, reset playhead, always looping. No microphone.
+- **Drum machine:** synthesized kick, snare, and closed hi-hat on a step grid (`beats × sub-beats` columns). Tempo slider (default 90 BPM), play/pause, reset playhead, always looping. Volume sliders **M** (master), **K**, **S**, **H** per voice (0–200%). No microphone.
 
 ## License
 

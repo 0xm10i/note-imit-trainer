@@ -17,7 +17,7 @@ import {
   playableRange,
   TUNING_STRING_COUNT,
 } from './notes.js';
-import { resumeAudioContext, setPlaybackVolume, setMetronomeVolume, setDrumVolume } from './audio.js';
+import { resumeAudioContext, setPlaybackVolume, setMetronomeVolume, setDrumVolume, setDrumVoiceVolume } from './audio.js';
 import { listAudioInputDevices as listDevices } from './pitch.js';
 
 const viewHome = document.getElementById('view-home');
@@ -74,6 +74,10 @@ const drumSubbeats = document.getElementById('drum-subbeats');
 const drumSubbeatsMinus = document.getElementById('drum-subbeats-minus');
 const drumSubbeatsPlus = document.getElementById('drum-subbeats-plus');
 const drumGrid = document.getElementById('drum-grid');
+const drumVolMaster = document.getElementById('drum-vol-master');
+const drumVolKick = document.getElementById('drum-vol-kick');
+const drumVolSnare = document.getElementById('drum-vol-snare');
+const drumVolHihat = document.getElementById('drum-vol-hihat');
 const resultsSummary = document.getElementById('results-summary');
 const resultsPerNote = document.getElementById('results-per-note');
 const settingsSaved = document.getElementById('settings-saved');
@@ -91,6 +95,9 @@ let settings = loadSettings();
 setPlaybackVolume(settings.playbackVolume);
 setMetronomeVolume(settings.metronomeVolume ?? 1);
 setDrumVolume(1);
+setDrumVoiceVolume('kick', 1);
+setDrumVoiceVolume('snare', 1);
+setDrumVoiceVolume('hhClosed', 1);
 let activeSession = null;
 let activeTuner = null;
 let activeMetronome = null;
@@ -533,11 +540,32 @@ async function toggleDrumPlayPause() {
   syncDrumPlayUi();
 }
 
+function bindDrumVolumeSlider(slider, apply) {
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    const value = parseFloat(slider.value);
+    apply(value);
+  });
+}
+
 function bindDrumUi() {
   syncDrumTempoUi(drumBpmValue);
   syncDrumBeatsUi(drumBeatsValue);
   syncDrumSubbeatsUi(drumSubbeatsValue);
   syncDrumPlayUi();
+
+  bindDrumVolumeSlider(drumVolMaster, (value) => {
+    setDrumVolume(value);
+  });
+  bindDrumVolumeSlider(drumVolKick, (value) => {
+    setDrumVoiceVolume('kick', value);
+  });
+  bindDrumVolumeSlider(drumVolSnare, (value) => {
+    setDrumVoiceVolume('snare', value);
+  });
+  bindDrumVolumeSlider(drumVolHihat, (value) => {
+    setDrumVoiceVolume('hhClosed', value);
+  });
 
   if (drumTempoSlider) {
     drumTempoSlider.addEventListener('input', () => {

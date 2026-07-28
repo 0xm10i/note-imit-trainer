@@ -2,6 +2,9 @@ let ctx = null;
 let outputGain = null;
 let metronomeGain = null;
 let drumGain = null;
+const drumVoiceGainNodes = {};
+
+const DRUM_MIXER_VOICES = ['kick', 'snare', 'hhClosed'];
 
 const PLAYBACK_VOLUME_MIN = 0;
 const PLAYBACK_VOLUME_MAX = 2;
@@ -55,6 +58,18 @@ function getDrumGain() {
   return drumGain;
 }
 
+function getDrumVoiceGain(voice) {
+  if (!DRUM_MIXER_VOICES.includes(voice)) return getDrumGain();
+  const ac = getAudioContext();
+  if (!drumVoiceGainNodes[voice]) {
+    const g = ac.createGain();
+    g.gain.value = 1;
+    g.connect(getDrumGain());
+    drumVoiceGainNodes[voice] = g;
+  }
+  return drumVoiceGainNodes[voice];
+}
+
 export function setDrumVolume(linear) {
   const v = Math.min(PLAYBACK_VOLUME_MAX, Math.max(PLAYBACK_VOLUME_MIN, linear));
   const g = getDrumGain();
@@ -62,7 +77,14 @@ export function setDrumVolume(linear) {
   return v;
 }
 
-function scheduleNoiseBurst(ac, when, duration, peak, filterType, filterFreq, filterQ) {
+export function setDrumVoiceVolume(voice, linear) {
+  const v = Math.min(PLAYBACK_VOLUME_MAX, Math.max(PLAYBACK_VOLUME_MIN, linear));
+  const g = getDrumVoiceGain(voice);
+  g.gain.setValueAtTime(v, g.context.currentTime);
+  return v;
+}
+
+function scheduleNoiseBurst(ac, when, duration, peak, filterType, filterFreq, filterQ, destination) {
   const bufferSize = Math.ceil(ac.sampleRate * duration) + 1;
   const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
   const data = buffer.getChannelData(0);
@@ -85,7 +107,7 @@ function scheduleNoiseBurst(ac, when, duration, peak, filterType, filterFreq, fi
 
   source.connect(filter);
   filter.connect(gain);
-  gain.connect(getDrumGain());
+  gain.connect(destination);
   source.start(when);
   source.stop(when + duration + 0.02);
 }
@@ -96,6 +118,7 @@ function scheduleNoiseBurst(ac, when, duration, peak, filterType, filterFreq, fi
  */
 export function scheduleDrumHit(voice, when) {
   const ac = getAudioContext();
+  const out = getDrumVoiceGain(voice);
 
   if (voice === 'kick') {
     const duration = 0.35;
@@ -104,7 +127,7 @@ export function scheduleDrumHit(voice, when) {
     gain.gain.setValueAtTime(0, when);
     gain.gain.linearRampToValueAtTime(0.85, when + 0.004);
     gain.gain.exponentialRampToValueAtTime(0.001, end);
-    gain.connect(getDrumGain());
+    gain.connect(out);
 
     const osc = ac.createOscillator();
     osc.type = 'sine';
@@ -117,13 +140,13 @@ export function scheduleDrumHit(voice, when) {
   }
 
   if (voice === 'snare') {
-    scheduleNoiseBurst(ac, when, 0.18, 0.45, 'bandpass', 1800, 0.8);
+    scheduleNoiseBurst(ac, when, 0.18, 0.45, 'bandpass', 1800, 0.8, out);
     const bodyEnd = when + 0.12;
     const body = ac.createGain();
     body.gain.setValueAtTime(0, when);
     body.gain.linearRampToValueAtTime(0.25, when + 0.003);
     body.gain.exponentialRampToValueAtTime(0.001, bodyEnd);
-    body.connect(getDrumGain());
+    body.connect(out);
     const osc = ac.createOscillator();
     osc.type = 'triangle';
     osc.frequency.value = 180;
@@ -134,7 +157,7 @@ export function scheduleDrumHit(voice, when) {
   }
 
   if (voice === 'hhClosed') {
-    scheduleNoiseBurst(ac, when, 0.05, 0.22, 'highpass', 7000, 0.7);
+    scheduleNoiseBurst(ac, when, 0.05, 0.22, 'highpass', 7000, 0.7, out);
   }
 }
 
