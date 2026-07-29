@@ -18,7 +18,7 @@ import {
   TUNING_STRING_COUNT,
 } from './notes.js';
 import { resumeAudioContext, setPlaybackVolume, setMetronomeVolume, setDrumVolume, setDrumVoiceVolume } from './audio.js';
-import { listAudioInputDevices as listDevices } from './pitch.js';
+import { listAudioInputDevices as listDevices, INPUT_GAIN_MIN, INPUT_GAIN_MAX } from './pitch.js';
 
 const viewHome = document.getElementById('view-home');
 const viewPractice = document.getElementById('view-practice');
@@ -48,6 +48,7 @@ const practiceLive = document.getElementById('practice-live');
 const micMeter = document.getElementById('mic-meter');
 const micGateMark = document.getElementById('mic-gate-mark');
 const micGateSlider = document.getElementById('mic-gate');
+const micBoostSlider = document.getElementById('mic-boost');
 const playbackVolumeSlider = document.getElementById('playback-volume');
 const tunerNote = document.getElementById('tuner-note');
 const tunerCents = document.getElementById('tuner-cents');
@@ -56,6 +57,7 @@ const tunerNeedle = document.getElementById('tuner-needle');
 const tunerMeter = document.getElementById('tuner-meter');
 const tunerGateMark = document.getElementById('tuner-gate-mark');
 const tunerGateSlider = document.getElementById('tuner-gate');
+const tunerBoostSlider = document.getElementById('tuner-boost');
 const tunerCard = document.querySelector('.tuner-card');
 const metronomeCard = document.querySelector('.metronome-card');
 const tempoDial = document.getElementById('tempo-dial');
@@ -154,6 +156,25 @@ function bindPlaybackVolumeSlider(slider) {
     settings.playbackVolume = value;
     setPlaybackVolume(value);
     if (settingsForm.playbackVolume) settingsForm.playbackVolume.value = String(value);
+  });
+  slider.addEventListener('change', () => {
+    saveSettings(settings);
+  });
+}
+
+function syncInputGainUi(slider) {
+  if (!slider) return;
+  slider.value = String(settings.inputGain ?? 3);
+}
+
+function bindInputGainSlider(slider, apply) {
+  if (!slider) return;
+  syncInputGainUi(slider);
+  slider.addEventListener('input', () => {
+    const value = Math.min(INPUT_GAIN_MAX, Math.max(INPUT_GAIN_MIN, parseFloat(slider.value)));
+    settings.inputGain = value;
+    apply(value);
+    if (settingsForm.inputGain) settingsForm.inputGain.value = String(value);
   });
   slider.addEventListener('change', () => {
     saveSettings(settings);
@@ -640,6 +661,7 @@ async function startTuner() {
     activeTuner = createTuner(
       {
         noiseGate: settings.noiseGate,
+        inputGain: settings.inputGain,
         inputDeviceId: settings.inputDeviceId,
         minFreq,
         maxFreq,
@@ -647,6 +669,7 @@ async function startTuner() {
       { onReading: updateTunerUi },
     );
     syncGateSliderUi(tunerGateSlider, tunerGateMark);
+    syncInputGainUi(tunerBoostSlider);
     await activeTuner.start();
   } catch (err) {
     stopTuner();
@@ -692,9 +715,17 @@ settingsForm.addEventListener('submit', (e) => {
     setPlaybackVolume(settings.playbackVolume);
     syncGateSliderUi(micGateSlider, micGateMark);
     syncGateSliderUi(tunerGateSlider, tunerGateMark);
+    syncInputGainUi(micBoostSlider);
+    syncInputGainUi(tunerBoostSlider);
     syncPlaybackVolumeUi(playbackVolumeSlider);
-    if (activeSession) activeSession.setNoiseGate(settings.noiseGate);
-    if (activeTuner) activeTuner.setNoiseGate(settings.noiseGate);
+    if (activeSession) {
+      activeSession.setNoiseGate(settings.noiseGate);
+      activeSession.setInputGain(settings.inputGain);
+    }
+    if (activeTuner) {
+      activeTuner.setNoiseGate(settings.noiseGate);
+      activeTuner.setInputGain(settings.inputGain);
+    }
     settingsSaved.classList.remove('hidden');
     setTimeout(() => settingsSaved.classList.add('hidden'), 2000);
   } catch (err) {
@@ -877,6 +908,7 @@ async function startPractice(noteCount) {
     });
 
     syncGateSliderUi(micGateSlider, micGateMark);
+    syncInputGainUi(micBoostSlider);
     syncPlaybackVolumeUi(playbackVolumeSlider);
     startMeter(activeSession.getListener());
     await activeSession.start();
@@ -941,5 +973,11 @@ bindGateSlider(micGateSlider, micGateMark, (value) => {
 });
 bindGateSlider(tunerGateSlider, tunerGateMark, (value) => {
   if (activeTuner) activeTuner.setNoiseGate(value);
+});
+bindInputGainSlider(micBoostSlider, (value) => {
+  if (activeSession) activeSession.setInputGain(value);
+});
+bindInputGainSlider(tunerBoostSlider, (value) => {
+  if (activeTuner) activeTuner.setInputGain(value);
 });
 bindPlaybackVolumeSlider(playbackVolumeSlider);

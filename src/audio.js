@@ -179,8 +179,9 @@ export function playNote(midi, durationSec = 1.2) {
 
   const master = ac.createGain();
   master.gain.setValueAtTime(0, now);
-  master.gain.linearRampToValueAtTime(0.35, now + 0.02);
-  master.gain.setValueAtTime(0.35, now + durationSec - 0.15);
+  const notePeak = 0.6;
+  master.gain.linearRampToValueAtTime(notePeak, now + 0.02);
+  master.gain.setValueAtTime(notePeak, now + durationSec - 0.15);
   master.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
   master.connect(getOutputGain());
 
@@ -192,13 +193,14 @@ export function playNote(midi, durationSec = 1.2) {
     { n: 5, gain: 0.12 },
     { n: 6, gain: 0.08 },
   ];
+  const harmonicSum = harmonics.reduce((s, h) => s + h.gain, 0);
 
   for (const { n, gain } of harmonics) {
     const osc = ac.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = freq * n;
     const g = ac.createGain();
-    g.gain.value = gain / harmonics.length;
+    g.gain.value = gain / harmonicSum;
     osc.connect(g);
     g.connect(master);
     osc.start(now);

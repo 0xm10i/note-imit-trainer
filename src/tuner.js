@@ -5,11 +5,12 @@ const IN_TUNE_CENTS = 5;
 const SMOOTH_ALPHA = 0.25;
 
 export function createTuner(options, callbacks = {}) {
-  const { noiseGate, inputDeviceId, minFreq, maxFreq } = options;
+  const { noiseGate, inputGain, inputDeviceId, minFreq, maxFreq } = options;
   const { onReading } = callbacks;
 
   const listener = new PitchListener({
     noiseGate,
+    inputGain,
     minFreq,
     maxFreq,
     centsTolerance: 100,
@@ -67,6 +68,10 @@ export function createTuner(options, callbacks = {}) {
 
     setNoiseGate(value) {
       listener.setNoiseGate(value);
+    },
+
+    setInputGain(value) {
+      listener.setInputGain(value);
     },
   };
 }

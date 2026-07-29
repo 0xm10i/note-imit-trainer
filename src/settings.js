@@ -7,6 +7,7 @@ export const DEFAULTS = {
   frets: 22,
   maxIntervalSemitones: 7,
   noiseGate: 0.015,
+  inputGain: 3,
   centsTolerance: 40,
   showLiveDetection: false,
   inputDeviceId: '',
@@ -60,6 +61,7 @@ export function readForm(form) {
     frets: parseInt(fd.get('frets'), 10),
     maxIntervalSemitones: Math.min(24, Math.max(1, parseInt(fd.get('maxIntervalSemitones'), 10))),
     noiseGate: parseFloat(fd.get('noiseGate')),
+    inputGain: Math.min(8, Math.max(0.5, parseFloat(fd.get('inputGain')) || 3)),
     centsTolerance: parseInt(fd.get('centsTolerance'), 10),
     showLiveDetection: form.showLiveDetection.checked,
     inputDeviceId: String(fd.get('inputDeviceId') || ''),
@@ -74,6 +76,7 @@ export function fillForm(form, settings) {
   form.frets.value = settings.frets;
   form.maxIntervalSemitones.value = settings.maxIntervalSemitones;
   form.noiseGate.value = settings.noiseGate;
+  if (form.inputGain) form.inputGain.value = settings.inputGain;
   form.centsTolerance.value = settings.centsTolerance;
   form.showLiveDetection.checked = settings.showLiveDetection;
   if (form.inputDeviceId) form.inputDeviceId.value = settings.inputDeviceId;

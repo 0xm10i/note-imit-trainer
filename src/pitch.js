@@ -2,11 +2,24 @@ import { midiFromFreqWithCents } from './notes.js';
 
 const DEFAULT_FFT = 32768;
 const DECIMATE = 2;
+const RMS_WINDOW = 2048;
+export const INPUT_GAIN_MIN = 0.5;
+export const INPUT_GAIN_MAX = 8;
 
-function rms(buffer) {
+function clampInputGain(value) {
+  return Math.min(INPUT_GAIN_MAX, Math.max(INPUT_GAIN_MIN, value));
+}
+
+function rms(buffer, start = 0, length = buffer.length) {
+  const end = Math.min(buffer.length, start + length);
   let sum = 0;
-  for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
-  return Math.sqrt(sum / buffer.length);
+  let count = 0;
+  for (let i = start; i < end; i++) {
+    sum += buffer[i] * buffer[i];
+    count++;
+  }
+  if (count === 0) return 0;
+  return Math.sqrt(sum / count);
 }
 
 /**
@@ -111,6 +124,7 @@ export function detectPitchFromTimeDomain(timeDomain, sampleRate, minFreq = 25, 
 export class PitchListener {
   constructor(options = {}) {
     this.noiseGate = options.noiseGate ?? 0.015;
+    this.inputGain = clampInputGain(options.inputGain ?? 3);
     this.centsTolerance = options.centsTolerance ?? 40;
     this.minFreq = options.minFreq ?? 25;
     this.maxFreq = options.maxFreq ?? 400;
@@ -118,6 +132,7 @@ export class PitchListener {
 
     this.stream = null;
     this.analyser = null;
+    this.inputGainNode = null;
     this.audioContext = null;
     this.buffer = null;
     this.gated = false;
@@ -146,10 +161,13 @@ export class PitchListener {
     this.stream = await navigator.mediaDevices.getUserMedia(constraints);
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const source = this.audioContext.createMediaStreamSource(this.stream);
+    this.inputGainNode = this.audioContext.createGain();
+    this.inputGainNode.gain.value = this.inputGain;
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = DEFAULT_FFT;
     this.buffer = new Float32Array(this.analyser.fftSize);
-    source.connect(this.analyser);
+    source.connect(this.inputGainNode);
+    this.inputGainNode.connect(this.analyser);
     this._loop();
   }
 
@@ -166,6 +184,7 @@ export class PitchListener {
       this.audioContext = null;
     }
     this.analyser = null;
+    this.inputGainNode = null;
     this.buffer = null;
   }
 
@@ -208,6 +227,13 @@ export class PitchListener {
     this.noiseGate = value;
   }
 
+  setInputGain(value) {
+    this.inputGain = clampInputGain(value);
+    if (this.inputGainNode && this.audioContext) {
+      this.inputGainNode.gain.setValueAtTime(this.inputGain, this.audioContext.currentTime);
+    }
+  }
+
   resetStability() {
     this._stableMidi = null;
     this._stableCount = 0;
@@ -225,7 +251,8 @@ export class PitchListener {
   _loop() {
     if (!this.analyser || !this.buffer) return;
     this.analyser.getFloatTimeDomainData(this.buffer);
-    const level = rms(this.buffer);
+    const rmsStart = Math.max(0, this.buffer.length - RMS_WINDOW);
+    const level = rms(this.buffer, rmsStart, RMS_WINDOW);
     this.rmsLevel = level;
 
     if (this.listeningEnabled && !this.gated && level >= this.noiseGate) {

@@ -30,7 +30,7 @@ Keep changes **small and focused**. Match existing style (vanilla JS, minimal co
 | [`src/app.js`](src/app.js) | DOM wiring, view switching, settings form, session callbacks |
 | [`src/session.js`](src/session.js) | Practice state machine, stats, timing constants, playback/listen sequencing |
 | [`src/audio.js`](src/audio.js) | Shared `AudioContext`; `playNote`, `playSuccessBell`, `scheduleMetronomeClick`, `scheduleDrumHit`; `setPlaybackVolume` / `setMetronomeVolume` / `setDrumVolume` / `setDrumVoiceVolume` (drum master + per-voice buses) |
-| [`src/pitch.js`](src/pitch.js) | MPM pitch detection, `PitchListener` (mic + stability gating) |
+| [`src/pitch.js`](src/pitch.js) | MPM pitch detection, `PitchListener` (mic gain, short-window RMS gate, stability gating) |
 | [`src/notes.js`](src/notes.js) | MIDI ↔ name ↔ frequency, tuning range, `pickRandomNote`, `pickRandomSequence` |
 | [`src/tuner.js`](src/tuner.js) | Chromatic tuner: `createTuner`, live cents readout via `PitchListener` |
 | [`src/metronome.js`](src/metronome.js) | Metronome: `createMetronome`, lookahead scheduler, accent on beat 1 of each measure |
@@ -71,8 +71,9 @@ Home screen passes `noteCount` (1–3) into the session; it is not persisted in 
 
 - 100 sequences per set, 5 strings, open strings B0–G2, 22 frets, max interval 7 semitones between consecutive notes in a sequence → playable MIDI ~23–65 (B0–F4).
 - Intermediate strings: evenly spaced between lowest and highest open string (rounded MIDI).
-- Advanced: noise gate, cents tolerance, input device, optional live detection (off by default).
+- Advanced: noise gate, mic boost (`inputGain`, default 3×), cents tolerance, input device, optional live detection (off by default).
 - Playback volume: 0–200% (default 100%) on reference tones and success bell; adjustable in Settings and during practice.
+- `PitchListener` RMS gate/meter uses the last ~2048 samples of the analyser buffer; pitch MPM still uses the full window.
 
 ## Testing and verification
 

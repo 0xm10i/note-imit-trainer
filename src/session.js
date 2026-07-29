@@ -51,6 +51,7 @@ export function createSession(settings, callbacks) {
 
   const listener = new PitchListener({
     noiseGate: settings.noiseGate,
+    inputGain: settings.inputGain,
     centsTolerance: settings.centsTolerance,
     minFreq,
     maxFreq,
@@ -277,6 +278,9 @@ export function createSession(settings, callbacks) {
     getState: () => state,
     setNoiseGate(value) {
       listener.setNoiseGate(value);
+    },
+    setInputGain(value) {
+      listener.setInputGain(value);
     },
   };
 }

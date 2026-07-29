@@ -19,8 +19,11 @@ Settings let you configure the number of strings, tuning, and frets, so it can b
 | Frets | 22 |
 | Max interval in a sequence | 7 semitones |
 | Playback volume | 100% |
+| Mic boost | 3× (0.5–8× in practice / tuner / settings) |
 
 Playable range is from the lowest open string through the highest string plus frets (default B0–F4).
+
+Mic **auto gain** stays disabled for pitch accuracy; use **Mic boost** if the level bar is low (common on phones).
 
 ## Local development
 
